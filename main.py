@@ -8,7 +8,7 @@ from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 
 directory = 'src'   #keep multiple files (.txt, .pdf) in data folder.
-model = "llama2-chat"
+qna_model = "llama2-chat"
 localai_address = "http://localhost:8080"
 
 def load_docs(directory):
@@ -32,6 +32,10 @@ embeddings = LocalAIEmbeddings(openai_api_base=localai_address, model="bert-embe
 print("Loading Vectorstore")
 vectorstore = FAISS.from_documents(documents=all_splits, embedding=embeddings)
 
+print("Loading LLM")
+llm = ChatOpenAI(model_name=qna_model, openai_api_base=localai_address, openai_api_key="mock-key", streaming=True, temperature=0.2, max_tokens=200)
+qa_chain = RetrievalQA.from_chain_type(llm,retriever=vectorstore.as_retriever())
+
 while True:
   question = input("Ask a question: ")
   print("Extracting Context:")
@@ -39,7 +43,5 @@ while True:
   print(docs)
   
   print("Generating answer")
-  llm = ChatOpenAI(model_name="llama2-chat", openai_api_base=localai_address, openai_api_key="mock-key", streaming=True, temperature=0.2, max_tokens=200)
-  qa_chain = RetrievalQA.from_chain_type(llm,retriever=vectorstore.as_retriever())
   
   print(qa_chain({"query": question}))
