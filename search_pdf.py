@@ -3,9 +3,9 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.vectorstores import FAISS
 from langchain.embeddings import LocalAIEmbeddings
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
+from langchain.llms import LlamaCpp
 
-qna_model = "llama2-chat"
+qna_model_file = "./models/llama-2-7b-chat.Q4_K_M.gguf"
 localai_address = "http://localhost:8080"
 faiss_database = 'vectorstore'   #keep multiple files (.txt, .pdf) in data folder.
 
@@ -15,7 +15,7 @@ print("Loading Vectorstore")
 vectorstore = FAISS.load_local(folder_path=faiss_database, embeddings=embeddings)
 
 print("Loading LLM")
-llm = ChatOpenAI(model_name=qna_model, openai_api_base=localai_address, openai_api_key="mock-key", streaming=True, temperature=0.2, max_tokens=200)
+llm = LlamaCpp(model_path=qna_model_file, n_ctx=4096)
 qa_chain = RetrievalQA.from_chain_type(llm,retriever=vectorstore.as_retriever())
 
 while True:

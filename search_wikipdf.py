@@ -1,4 +1,4 @@
-qna_model = "llama2-chat"
+qna_model_file = "./models/llama-2-7b-chat.Q4_K_M.gguf"
 localai_address = "http://localhost:8080"
 faiss_database = "vectorstore"
 
@@ -6,7 +6,7 @@ import os
 from langchain.document_loaders import WikipediaLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import LocalAIEmbeddings
-from langchain.chat_models import ChatOpenAI
+from langchain.llms import LlamaCpp
 from langchain.retrievers import WikipediaRetriever
 from langchain.chains import RetrievalQA
 from langchain.chains.question_answering import load_qa_chain
@@ -18,7 +18,7 @@ print("Loading Vectorstore")
 vectorstore = FAISS.load_local(folder_path=faiss_database, embeddings=embeddings)
 
 print("Loading LLM")
-llm = ChatOpenAI(model_name=qna_model, openai_api_base=localai_address, openai_api_key="mock-key", streaming=True, temperature=0.2, max_tokens=200)
+llm = LlamaCpp(model_path=qna_model_file, n_ctx=4096)
 qa_chain = RetrievalQA.from_chain_type(llm,retriever=vectorstore.as_retriever())
 
 print("Loading Retriever")
