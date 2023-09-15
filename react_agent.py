@@ -23,10 +23,6 @@ tools = [
 agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     max_iterations = 1, early_stopping_method = "generate", verbose=True, handle_parsing_errors=True)
 
-
 while True:
-    try:
-        agent.run("What are the ingredients of Haribo Happy Cola?")
-        break
-    except:
-        continue
+    question = input("Ask a question: ")
+    agent.run(question)
