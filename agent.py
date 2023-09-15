@@ -14,14 +14,14 @@ def initial_prompt(question):
     <<SYS>>
     You are a Chatbot Agent. Answer the following questions as best you can. You have access to the following tools:
 
-    Search: useful for gaining recent and fast changing information.
-    Wikipedia: useful for researching facts and knowledge that doesn't change often.
+    Web: useful for looking up recent and fast changing information.
+    Wiki: useful for looking up facts and knowledge that doesn't change often.
     None: useful if you already know the answer or the answer is obvious
 
     Use the following format:
     Question: the input question you must answer
     Thought: you should always think about what to do
-    Action: the action to take, should be Search or Wikipedia or None
+    Action: the action to take, should be Web or Wiki or None
     Action Input: the input to the action
     Observation: the result of the action
     ... (this Thought/Action/Action Input/Observation can repeat N times)
@@ -43,9 +43,9 @@ def parse_response(response):
     return action, action_input
 
 def take_action(action, action_input):
-    if "Search" in action: 
+    if "Web" in action: 
         return search.run(action_input)
-    if "Wikipedia" in action: 
+    if "Wiki" in action: 
         return wiki.run(action_input)
     return ""
 
