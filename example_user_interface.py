@@ -24,9 +24,9 @@ def initial_prompt(question):
 
     Use the following format:
 
-    Question: the input query
-    Thought: you should always think about what to do
-    Action: the action to take, should be Open or Close or None
+    Thought:  you should always think about what to do
+    Response: a response to give to the user
+    Action: the action to take, should be Open or Close or Nothing
     <</SYS>>
 
     [INST] {question} [/INST]
