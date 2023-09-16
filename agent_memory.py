@@ -13,7 +13,7 @@ if os.path.isfile(faiss_database+"/index.faiss"):
 else:
     vectorstore = FAISS.from_texts(texts=[""], embedding=embeddings)
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=20)
 search = DuckDuckGoSearchAPIWrapper()
 wiki = WikipediaAPIWrapper(top_k_result=2, doc_content_chars_max=512)
 
@@ -31,7 +31,7 @@ Question: the input question you must answer
 Memory: information from past interactions
 Thought: you should always think about what to do
 Action: the action to take, should be Duck or Wiki or None
-Action Input: the input to the action
+Action Input: the input query for the action
 Observation: the result of the action
 Thought: I now know the final answer
 Final Answer: the final answer to the original input question
@@ -50,14 +50,14 @@ def parse_response(response):
     return action, action_input
 
 def take_action(action, action_input):
-    if "Web" in action: 
+    if "Duck" in action: 
         return search.run(action_input)
     if "Wiki" in action: 
         return wiki.run(action_input)
     return ""
 
 def add_instruction(instruction, prompt):
-    return f"{prompt} [INST] {instruction} [/INST] "
+    return f"{prompt}\n[INST] {instruction} [/INST]\n"
 
 def docs_to_text(document_list):
     result = ""
@@ -74,22 +74,26 @@ while True:
         if "reset" in question: break
         prompt = add_instruction(question, prompt) + "\n"
         prompt += "Question: " + question + "\n"
+
         # Only look up memory once per conversation
-        if iteration == 1: memories = docs_to_text(vectorstore.similarity_search(question, k=3))
-        else: memories = ""
-        prompt += "Memory: " + memories + "\n" + "Thought: "
+        if iteration == 1:
+            prompt += "Memory: " + docs_to_text(vectorstore.similarity_search(question, k=3)) + "\n"
+        prompt += "Thought: "
         print(prompt)
+
         # Choose Action
         response = llm(prompt, stop=["Observation: "])
-        print(response)
         action, action_input = parse_response(response)
+        print(response)
+
         # Take action and save results in memory
         action_result = take_action(action, action_input)
-        print("Action Result: ", action_result)
         if action_result != "":
             new_texts = text_splitter.split_text(action_result)
             vectorstore.add_texts(texts=new_texts, embeddings=embeddings)
         else: observation = "None"
+        print("Action Result: ", action_result)
+
         # Summarize Results
         prompt += response + "Observation: " + action_result + "\n"
         response = llm(prompt)
