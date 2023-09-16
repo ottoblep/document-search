@@ -4,12 +4,12 @@ from langchain.utilities import WikipediaAPIWrapper
 from langchain.llms import LlamaCpp
 
 qna_model_file = "./models/llama-2-7b-chat.Q4_K_M.gguf"
-llm = LlamaCpp(model_path=qna_model_file, n_ctx=4096, n_threads=12, temperature=0.2, echo=True)
+llm = LlamaCpp(model_path=qna_model_file, n_ctx=4096, n_threads=12, temperature=0.2)
 
 search = DuckDuckGoSearchAPIWrapper()
 wiki = WikipediaAPIWrapper(top_k_result=2, doc_content_chars_max=512)
 
-def initial_prompt(question):
+def initial_prompt():
     return f"""
     <<SYS>>
     You are a Chatbot Agent. Answer the following questions as best you can. You have access to the following tools:
@@ -29,7 +29,6 @@ def initial_prompt(question):
     Final Answer: the final answer to the original input question
     <</SYS>>
 
-    [INST] {question} [/INST]
     """
 
 def parse_response(response):
@@ -49,15 +48,22 @@ def take_action(action, action_input):
         return wiki.run(action_input)
     return ""
 
+def add_instruction(instruction, prompt):
+    return f"{prompt} [INST] {instruction} [/INST] "
+
 while True:
-    question = input("LLM>>")
-    prompt = initial_prompt(question)
-    print(prompt)
-    response = llm(prompt, stop=["Observation: "])
-    print(response)
-    action, action_input = parse_response(response)
-    action_result = take_action(action, action_input)
-    print(action_result)
-    followup_prompt = prompt + response + "Observation: " + action_result + "\n"
-    followup_response = llm(followup_prompt)
-    print(followup_response)
+    prompt = initial_prompt()
+    while True:
+        question = input("LLM>>")
+        if "reset" in question: break
+        prompt = add_instruction(question, prompt)
+        print(prompt)
+        response = llm(prompt, stop=["Observation: "])
+        print(response)
+        action, action_input = parse_response(response)
+        action_result = take_action(action, action_input)
+        print(action_result)
+        followup_prompt = prompt + response + "Observation: " + action_result + "\n"
+        followup_response = llm(followup_prompt)
+        print(followup_response)
+        prompt = followup_prompt + followup_response
