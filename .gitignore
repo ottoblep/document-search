@@ -1,4 +1,5 @@
 venv
 src
-vectorstore
+vectorstore*
 models
+__pycache__
