@@ -19,25 +19,25 @@ wiki = WikipediaAPIWrapper(top_k_result=2, doc_content_chars_max=512)
 
 def initial_prompt():
     return f"""
-    <<SYS>>
-    You are a Chatbot Agent. Answer the following questions as best you can. You have access to the following tools:
+<<SYS>>
+You are a Chatbot Agent. Answer the following questions as best you can. You have access to the following tools:
 
-    Web: useful for looking up recent and fast changing information.
-    Wiki: useful for looking up facts and knowledge that doesn't change often.
-    None: useful if you already know the answer or the answer is obvious
+Duck: useful for looking up recent and fast changing information.
+Wiki: useful for looking up facts and knowledge that doesn't change often.
+None: useful if you already have enough information or the answer is obvious
 
-    Use the following format:
-    Question: the input question you must answer
-    Thought: you should always think about what to do
-    Action: the action to take, should be Web or Wiki or None
-    Action Input: the input to the action
-    Observation: the result of the action or information from memory
-    ... (this Thought/Action/Action Input/Observation can repeat N times)
-    Thought: I now know the final answer
-    Final Answer: the final answer to the original input question
-    <</SYS>>
+Use the following format:
+Question: the input question you must answer
+Memory: information from past interactions
+Thought: you should always think about what to do
+Action: the action to take, should be Duck or Wiki or None
+Action Input: the input to the action
+Observation: the result of the action
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+<</SYS>>
 
-    """
+"""
 
 def parse_response(response):
     start = "Action:"
@@ -67,12 +67,17 @@ def docs_to_text(document_list):
 
 while True:
     prompt = initial_prompt()
+    iteration = 1
     while True:
         # Format prompt for question
-        question = input("LLM>>")
+        question = input("LLM>> ")
         if "reset" in question: break
         prompt = add_instruction(question, prompt) + "\n"
         prompt += "Question: " + question + "\n"
+        # Only look up memory once per conversation
+        if iteration == 1: memories = docs_to_text(vectorstore.similarity_search(question, k=3))
+        else: memories = ""
+        prompt += "Memory: " + memories + "\n" + "Thought: "
         print(prompt)
         # Choose Action
         response = llm(prompt, stop=["Observation: "])
@@ -80,14 +85,15 @@ while True:
         action, action_input = parse_response(response)
         # Take action and save results in memory
         action_result = take_action(action, action_input)
-        new_texts = text_splitter.split_text(action_result)
-        vectorstore.add_texts(texts=new_texts, embeddings=embeddings)
-        # Choose relevant observation from knowledge
-        observation = docs_to_text(vectorstore.similarity_search(question, k=3))
+        print("Action Result: ", action_result)
+        if action_result != "":
+            new_texts = text_splitter.split_text(action_result)
+            vectorstore.add_texts(texts=new_texts, embeddings=embeddings)
+        else: observation = "None"
         # Summarize Results
-        print("Observation: ", observation)
-        prompt += response + "Observation: " + observation + "\n"
+        prompt += response + "Observation: " + action_result + "\n"
         response = llm(prompt)
         print(response)
         prompt += response
         vectorstore.save_local(faiss_database)
+        iteration += 1
